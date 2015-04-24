@@ -1,0 +1,109 @@
+---
+title: "Bivariate Assignment"
+author: 
+date: "February 20, 2015"
+output: html_document
+---
+
+## Variables
+
+The categorical variables that I will be examining in this assignment are as follows: The $CO_2$ emissions in metric tons per capita (grouped based on relative high or low income level).
+
+##Purpose
+
+
+For my bivariate and multivariate data I examined the association between the variables of CO2 emissions and income per capita. I have income per person on the x -axis and $CO_2$ emissions on the y-axis. My third factor is the income rates grouped by low or high rates. This graph is used to examine the association between income level and $CO_2$ emissions per capita.
+
+```{r echo = FALSE}
+knitr::opts_chunk$set(comment = NA, message = FALSE, warning = FALSE, fig.align = "center")
+```
+
+This is where I joined the data from gapminder and the variables I chose from MOJ.
+
+
+```{r echo = FALSE, results='hide'}
+library(PDS)
+library(WDI)
+WDIsearch("region")
+```
+
+
+```{r}
+MOJ <- WDI(country = "all", start = 2010, end = 2010, indicator = c("EN.ATM.CO2E.PC","EN.ATM.CO2E.PP.GD","EN.ATM.CO2E.PP.GD","NY.GDP.PCAP.PP.CD","UNDP.HDI.XD"))
+tail(MOJ)
+library(dplyr)
+NDF <- inner_join(x = gapminder, y = MOJ)
+head(NDF)
+summary(NDF$EN.ATM.CO2E.PC)
+NDF$CO2fac <- cut(NDF$EN.ATM.CO2E.PC, breaks = c(0, 20.15957, 40.31), include.lowest = TRUE)
+str(NDF$CO2fac)
+T1 <- xtabs(~CO2fac, data = NDF)
+T1
+
+library(ggplot2)
+summary(NDF$EN.ATM.CO2E.PC)
+ggplot(data = NDF, aes(x = CO2fac)) + geom_bar(fill = "blue") + theme_bw() + labs(x="CO2 Per Capita", title = "CO2 In Metric Tons Per Capita", y = "CO2 Per Capita")
+```
+
+
+This univariate graph shows the carbon dioxide emissions in metric tons per capita for different areas of the world(low vs.high income).
+
+```{r}
+# quantitative first
+hist(NDF$EN.ATM.CO2E.PC, main ="CO2 In Metric Tons Per Capita", xlab = "CO2 Per Capita", col = "red")
+plot(density(NDF$EN.ATM.CO2E.PC, na.rm = TRUE), main ="CO2 Emissions")
+#  ggplot2
+library(ggplot2)
+ggplot(data = gapminder, aes(x =incomeperperson)) + 
+  geom_histogram()
+#
+ggplot(data = gapminder, aes(x =incomeperperson)) + 
+  geom_density() +
+  labs(x = "CO2emissions", title = "CO2emissions")
+
+# shape 
+# center
+md <- median(gapminder$co2emissions, na.rm = TRUE)
+# spread
+iqr <- IQR(gapminder$co2emissions, na.rm = TRUE)
+c(md, iqr)
+```
+
+
+The above graph shows the total Carbon dioxide emissions in kilograms per PPP for different areas of the world.
+```{r}
+hist(gapminder$co2emissions)
+```
+
+
+```{r}
+gapminder$incomeFAC <- cut(gapminder$co2emissions, breaks = quantile(gapminder$co2emissions, na.rm = TRUE), include.lowest = TRUE)
+str(gapminder)
+ggplot(data = na.omit(gapminder), aes(x = incomeperperson, y = co2emissions)) + geom_point() + facet_grid(.~incomeFAC) + labs(x = "Income per Person", y = "CO2 Emissions", title = "CO2 Emissions and Per Capita Income")
+```
+
+This multivariate graph is representative of the total Carbon dioxide emissions as compared to income per capita. It is divided into two groups, low and high income.The trend of this graph shows that the per capita emissions increases as affluence level increases.
+
+
+```{r}
+# ANOVA
+```
+My null hypothesis is that carbon dioxide levels are not associated with the affluence level of a region. My alternative hyphothesis is that carbon dioxide levels are associated with affluence level of a region.
+
+```{r}
+
+
+incomeco2.aov <- aov(co2emissions ~ incomeFAC, data=gapminder)
+summary(incomeco2.aov)
+# Run follow-up descriptive statistics
+by(gapminder$co2emissions, gapminder$incomeFAC, mean, na.rm=T)
+
+# ANOVA with multi-level explanatory variable
+incomeco2.aov <- aov(co2emissions ~ incomeFAC, data=gapminder)
+summary(incomeco2.aov)
+# Run follow-up descriptive statistics
+by(gapminder$co2emissions, gapminder$incomeFAC, mean, na.rm=T)
+# Tukey's post-hoc test 
+TukeyHSD(incomeco2.aov)
+```
+The calculated p -value for this ANOVA test was 0.000859, which is less than 0.5. Therefore the null hypothesis was rejected and the results are statistically significant. Since the results were significant, a Tukey's post-hoc test was performed to determine the significance of the data with pairwise comparisons. The results showed that the differences between areas of high and low affluence were significant, while the differences between two areas of low affluence or two areas oh high affluence were not significant.
